@@ -55,6 +55,31 @@ def initialize(path):
             status TEXT NOT NULL CHECK(status IN ('pending', 'blocked', 'approved')),
             created_at TEXT NOT NULL, reviewed_by TEXT, reviewed_at TEXT
         );
+        CREATE TABLE IF NOT EXISTS onboarding_runs (
+            id TEXT PRIMARY KEY,
+            employee_id TEXT NOT NULL UNIQUE,
+            device_id TEXT NOT NULL UNIQUE REFERENCES devices(id),
+            profile TEXT NOT NULL CHECK(profile IN ('standard','engineering','support')),
+            status TEXT NOT NULL CHECK(status IN (
+                'created','readiness_verified','identity_simulated','apps_planned',
+                'apps_simulated','awaiting_privilege_approval','blocked',
+                'completed','completed_limited')),
+            identity_json TEXT,
+            applications_json TEXT,
+            privilege_json TEXT,
+            privilege_decision TEXT CHECK(privilege_decision IN ('approved','denied')),
+            privilege_expires_at TEXT,
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL
+        );
+        CREATE TABLE IF NOT EXISTS onboarding_events (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            run_id TEXT NOT NULL REFERENCES onboarding_runs(id),
+            occurred_at TEXT NOT NULL,
+            actor TEXT NOT NULL,
+            action TEXT NOT NULL,
+            detail TEXT NOT NULL
+        );
         CREATE TABLE IF NOT EXISTS evidence_runs (
             id TEXT PRIMARY KEY, created_at TEXT NOT NULL, sha256 TEXT NOT NULL,
             snapshot_path TEXT NOT NULL, manifest_path TEXT NOT NULL

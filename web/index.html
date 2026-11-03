@@ -14,7 +14,7 @@
       </div>
       <div class="mode"><span class="pulse"></span> LOCAL SANDBOX <small>No production connections</small></div>
     </header>
-    <div class="notice">All people, tickets, devices, and meeting records are fictional. AI explanations are simulated with deterministic rules; no LLM or third-party API is called.</div>
+    <div class="notice">All people, tickets, devices, and meeting records are fictional. Device data and actions are fictional. Optional local-only Ollama generation can be enabled; no third-party cloud API is called.</div>
     <section id="metrics" class="metrics" aria-label="Overview"></section>
     <main>
       <section class="panel" id="ticket-panel">
@@ -28,6 +28,13 @@
         <section class="panel"><span class="eyebrow">WORKFLOW 03</span><h2>Targeted patch communication</h2><p>Prepare notifications only for fictional devices with overdue updates.</p><button id="patches" class="primary">Preview notification plan</button><div class="output" id="patch-result">No notifications prepared yet.</div><p class="hint">A preview only; no messages are sent.</p></section>
       </div>
       <section class="panel"><div class="section-head"><div><span class="eyebrow">WORKFLOW 04 · RECRUITER'S REAL-LIFE SCENARIO</span><h2>Teams → Zoom cutover planner</h2><p>Inventory at-risk recurring and external meetings and propose owner-reviewed actions.</p></div><span class="chip">Dry-run only</span></div><button id="meetings" class="primary">Build safe migration plan</button><div class="output" id="meeting-result">No migration plan prepared yet.</div></section>
+      <section class="panel"><div class="section-head"><div><span class="eyebrow">WORKFLOW 05 · ENDPOINT PROVISIONING</span><h2>Laptop provisioning readiness</h2><p>Compare Mac and Windows device readiness, block noncompliant devices, and demonstrate an approval gate. No hardware changes.</p></div><span class="chip">Local simulation</span></div>
+        <label for="provisioning-device">Fictional laptop</label><select id="provisioning-device"></select>
+        <button id="provisioning-check" class="secondary">Check readiness</button>
+        <button id="provisioning-request" class="primary">Create local review request</button>
+        <div id="provisioning-result" class="output">Select a device to check simulated readiness.</div>
+        <div id="provisioning-approve-panel" class="approve-panel hidden"><label for="provisioning-reviewer">Simulated approver</label><input id="provisioning-reviewer" value="Demo Reviewer" maxlength="80"/><button id="provisioning-approve">Approve local readiness</button><span class="hint">This does not enroll a device, grant privileges, or change an endpoint.</span></div>
+      </section>
       <section class="panel"><div class="section-head"><div><span class="eyebrow">TRUST & OBSERVABILITY</span><h2>Traceable activity</h2><p>Local audit events for triage, approvals and evidence collection.</p></div><button id="refresh" class="secondary">Refresh activity</button></div><div id="audit" class="output">No activity yet.</div></section>
     </main>
     <footer>Local portfolio demonstration · Built for scenario-based technical interviews · <a href="/docs">Interactive API docs</a></footer>

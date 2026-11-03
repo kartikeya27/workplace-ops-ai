@@ -36,9 +36,12 @@ def test_ticket_not_found_and_bad_reviewer(client):
     assert client.post('/api/proposals/invalid-id/approve', json={'reviewer':'Reviewer'}).status_code == 404
 
 
-def test_deterministic_agent_handoff_is_explicit(client):
+def test_deterministic_agent_handoff_is_explicit(client, monkeypatch):
+    monkeypatch.setenv("WORKPLACE_AI_MODE", "deterministic")
+
     response = client.post('/api/tickets/T-1001/ai-summary')
     assert response.status_code == 200
+
     result = response.json()
     assert result['model_used'] is False
     assert result['needs_human_review'] is True

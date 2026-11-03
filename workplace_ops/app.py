@@ -42,6 +42,38 @@ def create_app(database_path=None):
             raise HTTPException(404, 'Ticket not found')
         return result
 
+    @app.get('/api/ai/diagnostics')
+    def ai_diagnostics():
+        return ai.diagnostics()
+
+    @app.get('/api/provisioning/requests')
+    def provisioning_requests():
+        return service.list_provisioning_requests(path)
+
+    @app.get('/api/provisioning/devices/{device_id}/readiness')
+    def provisioning_readiness(device_id: str):
+        result = service.provisioning_readiness(path, device_id)
+        if result is None:
+            raise HTTPException(404, 'Device not found')
+        return result
+
+    @app.post('/api/provisioning/devices/{device_id}/request')
+    def provisioning_request(device_id: str):
+        result = service.propose_provisioning(path, device_id)
+        if result is None:
+            raise HTTPException(404, 'Device not found')
+        return result
+
+    @app.post('/api/provisioning/requests/{request_id}/approve')
+    def provisioning_approve(request_id: str, body: Approval):
+        try:
+            result = service.approve_provisioning(path, request_id, body.reviewer)
+        except ValueError as exc:
+            raise HTTPException(409, str(exc)) from exc
+        if result is None:
+            raise HTTPException(404, 'Provisioning request not found')
+        return result
+
     @app.get('/api/summary')
     def summary():
         return service.summary(path)

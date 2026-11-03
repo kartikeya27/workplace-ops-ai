@@ -50,6 +50,11 @@ def initialize(path):
             provider TEXT NOT NULL, recurring INTEGER NOT NULL,
             external_attendees INTEGER NOT NULL, user_migrated INTEGER NOT NULL
         );
+        CREATE TABLE IF NOT EXISTS provisioning_requests (
+            id TEXT PRIMARY KEY, device_id TEXT NOT NULL UNIQUE REFERENCES devices(id),
+            status TEXT NOT NULL CHECK(status IN ('pending', 'blocked', 'approved')),
+            created_at TEXT NOT NULL, reviewed_by TEXT, reviewed_at TEXT
+        );
         CREATE TABLE IF NOT EXISTS evidence_runs (
             id TEXT PRIMARY KEY, created_at TEXT NOT NULL, sha256 TEXT NOT NULL,
             snapshot_path TEXT NOT NULL, manifest_path TEXT NOT NULL

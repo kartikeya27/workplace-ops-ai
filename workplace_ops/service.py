@@ -177,3 +177,74 @@ def verify_evidence(path, run_id):
 def list_events(path):
     with connect(path) as conn:
         return rows(conn, 'SELECT * FROM events ORDER BY id DESC LIMIT 40')
+
+
+def provisioning_readiness(path, device_id):
+    """Read-only, fictional enrollment readiness; never enrolls a real laptop."""
+    with connect(path) as conn:
+        device = conn.execute('SELECT * FROM devices WHERE id=?', (device_id,)).fetchone()
+    if device is None:
+        return None
+    checks = [
+        {'check': 'device_in_local_inventory', 'passed': True,
+         'explanation': 'Fictional device record exists; not proof of actual enrollment'},
+        {'check': 'disk_encryption', 'passed': bool(device['encrypted']),
+         'explanation': 'Illustrative FileVault/BitLocker state from local fixture'},
+        {'check': 'mdm_compliance', 'passed': bool(device['compliant']),
+         'explanation': 'Simulated MDM compliance flag'},
+        {'check': 'patch_currency', 'passed': device['patch_status'] == 'current',
+         'explanation': 'Simulated last-patch status'},
+    ]
+    return {'device_id': device['id'], 'platform': device['platform'],
+            'model': device['model'], 'ready': all(c['passed'] for c in checks),
+            'checks': checks, 'dry_run': True, 'real_device_changes': 0,
+            'note': 'Readiness simulation only: no hardware imaging, enrollment, or privileges changed.'}
+
+
+def list_provisioning_requests(path):
+    with connect(path) as conn:
+        return rows(conn, 'SELECT * FROM provisioning_requests ORDER BY created_at DESC, device_id')
+
+
+def propose_provisioning(path, device_id):
+    readiness = provisioning_readiness(path, device_id)
+    if readiness is None:
+        return None
+    with connect(path) as conn:
+        existing = conn.execute('SELECT * FROM provisioning_requests WHERE device_id=?', (device_id,)).fetchone()
+        if existing:
+            return {'request': dict(existing), 'readiness': readiness, 'already_exists': True}
+        request_id = str(uuid.uuid4())
+        status = 'pending' if readiness['ready'] else 'blocked'
+        # A unique constraint plus INSERT OR IGNORE also prevents duplicate requests
+        # if two workers evaluate the same fictional device concurrently.
+        inserted = conn.execute("""INSERT OR IGNORE INTO provisioning_requests
+                    (id,device_id,status,created_at) VALUES (?,?,?,?)""",
+                    (request_id, device_id, status, now())).rowcount
+        record = conn.execute('SELECT * FROM provisioning_requests WHERE device_id=?', (device_id,)).fetchone()
+        if inserted:
+            event(conn, 'system', 'PROVISIONING_REVIEW_CREATED', device_id, status)
+        return {'request': dict(record), 'readiness': readiness, 'already_exists': not bool(inserted)}
+
+
+def approve_provisioning(path, request_id, reviewer):
+    """Approve only a local simulated readiness record; never changes a device."""
+    with connect(path) as conn:
+        record = conn.execute('SELECT * FROM provisioning_requests WHERE id=?', (request_id,)).fetchone()
+        if record is None:
+            return None
+        if record['status'] == 'approved':
+            return {'request_id': request_id, 'status': 'approved', 'already_approved': True,
+                    'real_device_changes': 0}
+        if record['status'] != 'pending':
+            raise ValueError('Readiness checks failed; blocked device cannot be approved')
+        latest = provisioning_readiness(path, record['device_id'])
+        if not latest or not latest['ready']:
+            raise ValueError('Device is no longer ready; re-evaluate before approval')
+        changed = conn.execute("""UPDATE provisioning_requests
+             SET status='approved',reviewed_by=?,reviewed_at=?
+             WHERE id=? AND status='pending' """, (reviewer, now(), request_id)).rowcount
+        if changed:
+            event(conn, reviewer, 'SIMULATED_PROVISIONING_APPROVED', record['device_id'], request_id)
+        return {'request_id': request_id, 'status': 'approved',
+                'already_approved': not bool(changed), 'real_device_changes': 0}

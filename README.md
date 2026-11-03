@@ -6,7 +6,7 @@
 
 > **Safety / scope:** This repository contains fictional users, devices, tickets, and meetings. It has **no live Jamf, Intune, Okta, Microsoft Graph, Zoom, email, or service-desk integration**. All mutations are confined to a local SQLite database. AI summaries default to explainable deterministic drafting; a local language model is optional. This is not a production-ready IAM, MDM, audit, or migration system.
 
-## What you can demonstrate
+## What I have include here
 
 | Workflow | What works locally | Real-world boundary |
 |---|---|---|

@@ -96,3 +96,64 @@ $('provisioning-approve').addEventListener('click', () => perform('provisioning-
   $('provisioning-approve-panel').classList.add('hidden');
   await refresh();
 }));
+
+
+// End-to-end local onboarding workflow; only SQLite changes, no external API calls.
+let activeOnboardingRun = null;
+async function loadOnboardingDevices() {
+  const devices = await request('/api/devices');
+  $('onboarding-device').innerHTML = devices.map(d =>
+    '<option value="' + escapeHtml(d.id) + '">' + escapeHtml(d.id) +
+    ' · ' + escapeHtml(d.model) + ' (' + escapeHtml(d.platform) + ')</option>').join('');
+}
+function renderOnboarding(run) {
+  activeOnboardingRun = run.id;
+  const ended = ['blocked', 'completed', 'completed_limited'].includes(run.status);
+  $('onboarding-advance').disabled = ended || run.status === 'awaiting_privilege_approval';
+  $('onboarding-privilege-panel').classList.toggle('hidden', run.status !== 'awaiting_privilege_approval');
+  const steps = run.timeline.map(e => escapeHtml(e.time) + ' · <strong>' +
+    escapeHtml(e.action) + '</strong> · ' + escapeHtml(e.actor));
+  const apps = run.application_plan && run.application_plan.apps ?
+    run.application_plan.apps.map(a => a.name + ': ' + a.state).join('\n') : 'Not planned yet';
+  const priv = run.privilege_request ?
+    run.privilege_request.scope + ' · ' + run.privilege_request.state : 'Not requested';
+  show('onboarding-result',
+    '<strong>Employee:</strong> ' + escapeHtml(run.employee_id) + '\n' +
+    '<strong>Device:</strong> ' + escapeHtml(run.device_id) + '\n' +
+    '<strong>Status:</strong> ' + escapeHtml(run.status) + '\n' +
+    '<strong>Identity:</strong> ' + escapeHtml(run.identity_plan ? run.identity_plan.state : 'Not provisioned') + '\n' +
+    '<strong>Applications:</strong>\n' + escapeHtml(apps) + '\n' +
+    '<strong>Privilege:</strong> ' + escapeHtml(priv) + '\n' +
+    '<strong>Simulated privilege valid:</strong> ' +
+    (run.simulated_privilege_currently_valid ? 'yes (local record only)' : 'no') + '\n' +
+    '<strong>Real external writes:</strong> ' + escapeHtml(run.external_writes) +
+    '\n\n<strong>Audit timeline</strong>\n' + steps.join('\n'));
+}
+$('onboarding-create').addEventListener('click', () => perform('onboarding-result', async () => {
+  const result = await request('/api/onboarding', {
+    method: 'POST', body: JSON.stringify({
+      employee_id: $('onboarding-employee').value.trim(),
+      device_id: $('onboarding-device').value,
+      profile: $('onboarding-profile').value
+    })
+  });
+  renderOnboarding(result.run);
+  await refresh();
+}));
+$('onboarding-advance').addEventListener('click', () => perform('onboarding-result', async () => {
+  if (!activeOnboardingRun) return;
+  const result = await request('/api/onboarding/' + encodeURIComponent(activeOnboardingRun) + '/advance', {method: 'POST'});
+  renderOnboarding(result.run);
+  await refresh();
+}));
+for (const [button, decision] of [['onboarding-approve', 'approve'], ['onboarding-deny', 'deny']]) {
+  $(button).addEventListener('click', () => perform('onboarding-result', async () => {
+    if (!activeOnboardingRun) return;
+    const result = await request('/api/onboarding/' + encodeURIComponent(activeOnboardingRun) + '/privilege-decision', {
+      method: 'POST', body: JSON.stringify({reviewer: $('onboarding-reviewer').value.trim(), decision})
+    });
+    renderOnboarding(result.run);
+    await refresh();
+  }));
+}
+perform('onboarding-result', loadOnboardingDevices);

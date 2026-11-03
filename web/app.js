@@ -64,3 +64,35 @@ $('meetings').addEventListener('click', () => perform('meeting-result', async ()
 }));
 $('refresh').addEventListener('click', () => perform('audit', refresh));
 perform('audit', refresh);
+
+let currentProvisioning = null;
+perform('provisioning-result', async () => {
+  const devices = await request('/api/devices');
+  $('provisioning-device').innerHTML = devices
+    .map(d => `<option value="${escapeHtml(d.id)}">${escapeHtml(d.id)} · ${escapeHtml(d.model)} (${escapeHtml(d.platform)})</option>`).join('');
+});
+$('provisioning-check').addEventListener('click', () => perform('provisioning-result', async () => {
+  const id = encodeURIComponent($('provisioning-device').value);
+  const data = await request(`/api/provisioning/devices/${id}/readiness`);
+  currentProvisioning = null;
+  $('provisioning-approve-panel').classList.add('hidden');
+  show('provisioning-result', fmt(data));
+}));
+$('provisioning-request').addEventListener('click', () => perform('provisioning-result', async () => {
+  const id = encodeURIComponent($('provisioning-device').value);
+  const data = await request(`/api/provisioning/devices/${id}/request`, {method:'POST'});
+  currentProvisioning = data.request.status === 'pending' ? data.request.id : null;
+  $('provisioning-approve-panel').classList.toggle('hidden', !currentProvisioning);
+  show('provisioning-result', fmt(data));
+  await refresh();
+}));
+$('provisioning-approve').addEventListener('click', () => perform('provisioning-result', async () => {
+  if (!currentProvisioning) return;
+  const result = await request(`/api/provisioning/requests/${encodeURIComponent(currentProvisioning)}/approve`, {
+    method:'POST', body:JSON.stringify({reviewer:$('provisioning-reviewer').value.trim()})
+  });
+  show('provisioning-result', fmt(result));
+  currentProvisioning = null;
+  $('provisioning-approve-panel').classList.add('hidden');
+  await refresh();
+}));

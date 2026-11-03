@@ -11,7 +11,8 @@ from urllib.error import URLError, HTTPError
 from .db import connect
 from .triage import classify, recommendation
 
-MODEL = os.environ.get('WORKPLACE_OLLAMA_MODEL', 'llama3.2')
+def model_name():
+    return os.environ.get('WORKPLACE_OLLAMA_MODEL', 'llama3.2')
 
 
 def mode():
@@ -54,7 +55,7 @@ def summarize(path, ticket_id):
         f'Observed device state: {", ".join(grounded["device_facts"])}\n'
     )
     req = Request('http://127.0.0.1:11434/api/generate',
-                  data=json.dumps({'model': MODEL, 'prompt': prompt, 'stream': False,
+                  data=json.dumps({'model': model_name(), 'prompt': prompt, 'stream': False,
                                    'options': {'temperature': 0.1, 'num_predict': 220}}).encode('utf-8'),
                   headers={'Content-Type': 'application/json'}, method='POST')
     try:
@@ -62,8 +63,28 @@ def summarize(path, ticket_id):
             data = json.load(response)
     except (URLError, HTTPError, TimeoutError, ValueError) as exc:
         raise RuntimeError('Local Ollama unavailable or failed. Start Ollama and pull the configured model.') from exc
-    return {'mode': 'ollama-local', 'model_used': True, 'model_name': MODEL,
+    return {'mode': 'ollama-local', 'model_used': True, 'model_name': model_name(),
             'ticket_id': ticket_id, 'draft': str(data.get('response', '')).strip()[:1500],
             'knowledge_id': grounded['knowledge_id'], 'needs_human_review': True,
             'trace': trace + ['summarize_with_local_llm'],
             'warning': 'Model output may be wrong; routing and approvals remain deterministic.'}
+
+
+def diagnostics():
+    """Probe only loopback Ollama; do not send model prompts or contact cloud APIs."""
+    selected = model_name()
+    configured = mode()
+    result = {'mode': configured, 'configured_model': selected,
+              'ollama_reachable': False, 'model_installed': False,
+              'installed_models': [], 'loopback_only': True}
+    try:
+        with urlopen('http://127.0.0.1:11434/api/tags', timeout=2) as response:
+            data = json.load(response)
+        names = sorted(str(entry.get('name', '')) for entry in data.get('models', [])
+                       if isinstance(entry, dict) and entry.get('name'))
+        result.update({'ollama_reachable': True, 'installed_models': names,
+                       'model_installed': selected in names or
+                        (':' not in selected and selected + ':latest' in names)})
+    except (URLError, HTTPError, TimeoutError, ValueError, OSError) as exc:
+        result['message'] = 'Ollama is not reachable on localhost:11434: ' + type(exc).__name__
+    return result

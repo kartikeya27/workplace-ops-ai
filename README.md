@@ -209,3 +209,11 @@ curl -s -X POST http://127.0.0.1:8000/api/evidence/runs
 ```
 
 Use the Swagger interface at `/docs` to discover the other routes and perform manual requests. The approval API intentionally accepts a **demo label, not a secure identity**; do not deploy this application to a public host.
+
+## End-to-end simulated laptop onboarding (Workflow 06)
+
+The dashboard includes a fully local, stateful Mac/Windows employee onboarding lifecycle: **device readiness → simulated identity/MFA → role-based application plan → simulated installation → explicit time-limited privilege review**. Noncompliant devices are blocked before identity operations; standard roles never request elevation. Every stage is auditable in local SQLite and conflicting retries are rejected.
+
+Run `python -m pytest -q`, start with `python -m workplace_ops`, then visit `http://127.0.0.1:8000`. See [docs/ONBOARDING.md](docs/ONBOARDING.md) for the complete walkthrough and curl examples.
+
+**Scope:** No real MDM enrollment, IdP creation, application installation or privilege granting occurs. This is a fictional local portfolio demo, not production IAM/MDM/EPM automation.

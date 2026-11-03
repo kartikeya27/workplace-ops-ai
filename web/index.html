@@ -35,6 +35,24 @@
         <div id="provisioning-result" class="output">Select a device to check simulated readiness.</div>
         <div id="provisioning-approve-panel" class="approve-panel hidden"><label for="provisioning-reviewer">Simulated approver</label><input id="provisioning-reviewer" value="Demo Reviewer" maxlength="80"/><button id="provisioning-approve">Approve local readiness</button><span class="hint">This does not enroll a device, grant privileges, or change an endpoint.</span></div>
       </section>
+      <section class="panel" id="onboarding-panel"><div class="section-head"><div><span class="eyebrow">WORKFLOW 06 · END-TO-END ONBOARDING</span><h2>Employee laptop onboarding</h2><p>Run controlled stages: device readiness → mock identity → application plan → simulated installs → human privilege decision.</p></div><span class="chip">No external writes</span></div>
+        <div class="two-col">
+          <div>
+            <label for="onboarding-employee">Fictional employee ID</label><input id="onboarding-employee" value="EMP-1001" maxlength="8" placeholder="EMP-1001"/>
+            <label for="onboarding-device">Fictional laptop</label><select id="onboarding-device"></select>
+            <label for="onboarding-profile">Access profile</label><select id="onboarding-profile"><option value="engineering">Engineering (review required)</option><option value="standard">Standard (no elevation)</option><option value="support">Support (review required)</option></select>
+            <button id="onboarding-create" class="primary">Start local onboarding</button>
+            <button id="onboarding-advance" class="secondary" disabled>Run next simulated step</button>
+            <div id="onboarding-privilege-panel" class="approve-panel hidden">
+              <label for="onboarding-reviewer">Simulated privilege reviewer</label><input id="onboarding-reviewer" value="Demo Reviewer" maxlength="80"/>
+              <button id="onboarding-approve">Approve 30-minute simulated elevation</button>
+              <button id="onboarding-deny" class="secondary">Deny simulated elevation</button>
+            </div>
+            <p class="hint">Each click executes one state transition. A failing security check blocks onboarding. Reviewer names are demo labels, not authenticated identities; no accounts, apps, or permissions are changed.</p>
+          </div>
+          <div id="onboarding-result" class="output" aria-live="polite">Start a fictional onboarding run to see each control gate and audit event.</div>
+        </div>
+      </section>
       <section class="panel"><div class="section-head"><div><span class="eyebrow">TRUST & OBSERVABILITY</span><h2>Traceable activity</h2><p>Local audit events for triage, approvals and evidence collection.</p></div><button id="refresh" class="secondary">Refresh activity</button></div><div id="audit" class="output">No activity yet.</div></section>
     </main>
     <footer>Local portfolio demonstration · Built for scenario-based technical interviews · <a href="/docs">Interactive API docs</a></footer>

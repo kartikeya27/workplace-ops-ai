@@ -1,17 +1,28 @@
 """FastAPI application factory for a safe, local, fictional demonstration."""
 from pathlib import Path
+from typing import Literal
 from fastapi import FastAPI, HTTPException, Header
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 from .db import db_path, initialize
-from . import service, ai
+from . import service, ai, onboarding
 
 ROOT = Path(__file__).resolve().parent.parent
 
 class Approval(BaseModel):
     reviewer: str = Field(min_length=2, max_length=80, pattern=r'^[a-zA-Z0-9 ._()-]+$')
 
+
+class OnboardingCreate(BaseModel):
+    employee_id: str = Field(pattern=r'^EMP-[0-9]{4}$', max_length=8)
+    device_id: str = Field(min_length=3, max_length=30, pattern=r'^[A-Za-z0-9-]+$')
+    profile: Literal['standard', 'engineering', 'support']
+
+
+class PrivilegeDecision(BaseModel):
+    reviewer: str = Field(min_length=2, max_length=80, pattern=r'^[a-zA-Z0-9 ._()-]+$')
+    decision: Literal['approve', 'deny']
 
 def create_app(database_path=None):
     path = Path(database_path).resolve() if database_path else db_path()
@@ -72,6 +83,47 @@ def create_app(database_path=None):
             raise HTTPException(409, str(exc)) from exc
         if result is None:
             raise HTTPException(404, 'Provisioning request not found')
+        return result
+
+    @app.post('/api/onboarding')
+    def create_onboarding(body: OnboardingCreate):
+        try:
+            result = onboarding.create_run(path, body.employee_id, body.device_id, body.profile)
+        except ValueError as exc:
+            raise HTTPException(409, str(exc)) from exc
+        if result is None:
+            raise HTTPException(404, 'Device not found')
+        return result
+
+    @app.get('/api/onboarding')
+    def onboarding_runs():
+        return onboarding.list_runs(path)
+
+    @app.get('/api/onboarding/{run_id}')
+    def onboarding_detail(run_id: str):
+        result = onboarding.get_run(path, run_id)
+        if result is None:
+            raise HTTPException(404, 'Onboarding run not found')
+        return result
+
+    @app.post('/api/onboarding/{run_id}/advance')
+    def onboarding_advance(run_id: str):
+        try:
+            result = onboarding.advance(path, run_id)
+        except ValueError as exc:
+            raise HTTPException(409, str(exc)) from exc
+        if result is None:
+            raise HTTPException(404, 'Onboarding run not found')
+        return result
+
+    @app.post('/api/onboarding/{run_id}/privilege-decision')
+    def onboarding_privilege_decision(run_id: str, body: PrivilegeDecision):
+        try:
+            result = onboarding.decide_privilege(path, run_id, body.reviewer, body.decision)
+        except ValueError as exc:
+            raise HTTPException(409, str(exc)) from exc
+        if result is None:
+            raise HTTPException(404, 'Onboarding run not found')
         return result
 
     @app.get('/api/summary')

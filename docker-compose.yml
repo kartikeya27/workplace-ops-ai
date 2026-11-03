@@ -1,0 +1,9 @@
+services:
+  app:
+    build: .
+    ports:
+      - "127.0.0.1:8000:8000"
+    environment:
+      WORKPLACE_DB_PATH: /app/artifacts/workplace_ops.db
+    volumes:
+      - ./artifacts:/app/artifacts
